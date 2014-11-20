@@ -15,9 +15,8 @@ int main(int argc, char *argv[])
 		qDebug() << name.name;
 	}
 
-	speech.say("TESTING THE PLAYBACK SOUND SYSTEM");
 	speech.tell("TESTING THE PLAYBACK SOUND SYSTEM");
+	qDebug() << speech.name().name;
 
-	return 0;
 	return app.exec();
 }

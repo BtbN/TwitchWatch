@@ -17,174 +17,110 @@
     Boston, MA 02110-1301 USA */
 
 #include <QtCore>
-#include <QtSpeech>
-#include <QtSpeech_unx.h>
-
-extern "C" void abort_est() { abort(); }
-#define abort abort_est
-#include <festival.h>
-#undef abort
+#include <QProcess>
+#include <QtSpeech.h>
 
 namespace QtSpeech_v1
 {
 
 // some defines for throwing exceptions
 #define Where QString("%1:%2:").arg(__FILE__).arg(__LINE__)
-#define SysCall(x,e) {\
-		int ok = x;\
-		if (!ok) {\
-			QString msg = #e;\
-			msg += ":"+QString(__FILE__);\
-			msg += ":"+QString::number(__LINE__)+":"+#x;\
-			throw e(msg);\
-		}\
+
+// internal data
+class QtSpeech::Private
+{
+	public:
+	VoiceName name;
+	static const QString VoiceId;
+};
+
+const QString QtSpeech::Private::VoiceId = QString("festival:%1");
+
+// implementation
+QtSpeech::QtSpeech(QObject* parent)
+	: QObject(parent), d(new Private)
+{
+	VoiceName n = {Private::VoiceId.arg("english"), "English"};
+
+	if (n.id.isEmpty())
+	{
+		throw InitError(Where + "No default voice in system");
 	}
 
-	// qobject for speech thread
-	bool QtSpeech_th::init = false;
-	void QtSpeech_th::say(QString text)
+	d->name = n;
+}
+
+QtSpeech::QtSpeech(VoiceName n, QObject* parent)
+	: QObject(parent), d(new Private)
+{
+	if (n.id.isEmpty())
 	{
-		try
-		{
-			if (!init)
-			{
-				int heap_size = FESTIVAL_HEAP_SIZE;
-				festival_initialize(true, heap_size);
-				init = true;
-			}
-
-			has_error = false;
-			EST_String est_text(text.toUtf8());
-			SysCall(festival_say_text(est_text), QtSpeech::LogicError);
-		}
-		catch(QtSpeech::LogicError e)
-		{
-			has_error = true;
-			err = e;
-		}
-
-		emit finished();
+		VoiceName def = {Private::VoiceId.arg("english"), "English"};
+		n = def;
 	}
 
-	// internal data
-	class QtSpeech::Private
+	if (n.id.isEmpty())
 	{
-		public:
-			Private()
-				: onFinishSlot(0L) {}
-
-			VoiceName name;
-			static const QString VoiceId;
-
-			const char* onFinishSlot;
-			QPointer<QObject> onFinishObj;
-			static QPointer<QThread> speechThread;
-	};
-	QPointer<QThread> QtSpeech::Private::speechThread = 0L;
-	const QString QtSpeech::Private::VoiceId = QString("festival:%1");
-
-	// implementation
-	QtSpeech::QtSpeech(QObject* parent)
-		: QObject(parent), d(new Private)
-	{
-		VoiceName n = {Private::VoiceId.arg("english"), "English"};
-
-		if (n.id.isEmpty())
-		{
-			throw InitError(Where + "No default voice in system");
-		}
-
-		d->name = n;
+		throw InitError(Where + "No default voice in system");
 	}
 
-	QtSpeech::QtSpeech(VoiceName n, QObject* parent)
-		: QObject(parent), d(new Private)
-	{
-		if (n.id.isEmpty())
-		{
-			VoiceName def = {Private::VoiceId.arg("english"), "English"};
-			n = def;
-		}
+	d->name = n;
+}
 
-		if (n.id.isEmpty())
-		{
-			throw InitError(Where + "No default voice in system");
-		}
+QtSpeech::~QtSpeech()
+{
+	//if ()
+	delete d;
+}
 
-		d->name = n;
-	}
+const QtSpeech::VoiceName& QtSpeech::name() const
+{
+	return d->name;
+}
 
-	QtSpeech::~QtSpeech()
-	{
-		//if ()
-		delete d;
-	}
+QtSpeech::VoiceNames QtSpeech::voices()
+{
+	VoiceNames vs;
+	VoiceName n = {Private::VoiceId.arg("english"), "English"};
+	vs << n;
+	return vs;
+}
 
-	const QtSpeech::VoiceName& QtSpeech::name() const
-	{
-		return d->name;
-	}
+void QtSpeech::tell(const QString &text)
+{
+	tell(text, nullptr, nullptr);
+}
 
-	QtSpeech::VoiceNames QtSpeech::voices()
-	{
-		VoiceNames vs;
-		VoiceName n = {Private::VoiceId.arg("english"), "English"};
-		vs << n;
-		return vs;
-	}
+void QtSpeech::tell(const QString &text, QObject* obj, const char* slot)
+{
+	QProcess *proc = new QProcess(this);
 
-	void QtSpeech::tell(QString text) const
-	{
-		tell(text, 0L, 0L);
-	}
+	QString prog = "festival";
+	QStringList args = {"--tts"};
 
-	void QtSpeech::tell(QString text, QObject* obj, const char* slot) const
-	{
-		if (!d->speechThread)
-		{
-			d->speechThread = new QThread;
-			d->speechThread->start();
-		}
+	proc->start(prog, args);
 
-		d->onFinishObj = obj;
-		d->onFinishSlot = slot;
+	connect(proc, &QProcess::started, this, [proc, text]() {
+		proc->write(text.toUtf8());
+		proc->closeWriteChannel();
+	});
 
-		if (obj && slot)
-		{
-			connect(const_cast<QtSpeech*>(this), SIGNAL(finished()), obj, slot);
-		}
+	if(obj && slot)
+		connect(proc, SIGNAL(finished(int)), obj, slot);
 
-		QtSpeech_th* th = new QtSpeech_th;
-		th->moveToThread(d->speechThread);
-		connect(th, SIGNAL(finished()), this, SIGNAL(finished()), Qt::QueuedConnection);
-		connect(th, SIGNAL(finished()), th, SLOT(deleteLater()), Qt::QueuedConnection);
-		QMetaObject::invokeMethod(th, "say", Qt::QueuedConnection, Q_ARG(QString, text));
-	}
+	connect(proc, SIGNAL(finished(int)), proc, SLOT(deleteLater()));
+}
 
-	void QtSpeech::say(QString text) const
-	{
-		if (!d->speechThread)
-		{
-			d->speechThread = new QThread;
-			d->speechThread->start();
-		}
+void QtSpeech::say(const QString &text)
+{
+	QEventLoop el;
+	tell(text, &el, SLOT(quit()));
+	el.exec();
+}
 
-		QEventLoop el;
-		QtSpeech_th th;
-		th.moveToThread(d->speechThread);
-		connect(&th, SIGNAL(finished()), &el, SLOT(quit()), Qt::QueuedConnection);
-		QMetaObject::invokeMethod(&th, "say", Qt::QueuedConnection, Q_ARG(QString, text));
-		el.exec();
-
-		if (th.has_error)
-		{
-			throw th.err;
-		}
-	}
-
-	void QtSpeech::timerEvent(QTimerEvent* te)
-	{
-		QObject::timerEvent(te);
-	}
+void QtSpeech::timerEvent(QTimerEvent* te)
+{
+	QObject::timerEvent(te);
+}
 
 } // namespace QtSpeech_v1

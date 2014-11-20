@@ -73,9 +73,9 @@ class QTSPEECH_API QtSpeech : public QObject
 	static VoiceNames voices();     //!< List of available voices in system
 
 	public slots:
-	void say(QString msg) const;                                    //!< Say something, synchronous
-	void tell(QString msg) const;                                   //!< Tell something, asynchronous
-	void tell(QString msg, QObject* obj, const char* slot) const;   //!< Tell something, invoke slot at end
+	void say(const QString &msg);                                    //!< Say something, synchronous
+	void tell(const QString &msg);                                   //!< Tell something, asynchronous
+	void tell(const QString &msg, QObject* obj, const char* slot);   //!< Tell something, invoke slot at end
 
 	signals:
 	void finished();
