@@ -1,5 +1,6 @@
 #include <QListWidget>
 #include <QVBoxLayout>
+#include <QTimer>
 
 #include <Irc>
 #include <IrcConnection>
@@ -61,6 +62,7 @@ void SrlIrc::onConnected()
 void SrlIrc::onDisconnected()
 {
 	postMsg("Disconnected from SRL IRC!", true);
+	QTimer::singleShot(10000, conn, SLOT(open()));
 }
 
 void SrlIrc::gotMsg(IrcPrivateMessage *msg)

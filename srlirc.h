@@ -7,6 +7,7 @@
 class IrcConnection;
 class QListWidget;
 class IrcPrivateMessage;
+class QTimer;
 
 class SrlIrc : public QWidget
 {

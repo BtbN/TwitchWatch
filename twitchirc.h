@@ -23,9 +23,11 @@ class TwitchIrc : public QWidget
 	void onConnected();
 	void onDisconnected();
 	void gotMsg(IrcPrivateMessage *msg);
+	void nomsg();
 
 	private:
 	IrcConnection *conn;
 	QListWidget *lw;
 	QtSpeech *speech;
+	QTimer *msgtimer;
 };

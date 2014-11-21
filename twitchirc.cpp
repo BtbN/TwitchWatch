@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QLineEdit>
 #include <QSettings>
+#include <QTimer>
 
 #include <Irc>
 #include <IrcConnection>
@@ -60,6 +61,12 @@ TwitchIrc::TwitchIrc(QWidget *parent)
 	lay->addWidget(ue);
 	lay->addWidget(le);
 	lay->addWidget(lw);
+
+	msgtimer = new QTimer(this);
+	msgtimer->setSingleShot(true);
+	msgtimer->setInterval(120000);
+
+	connect(msgtimer, SIGNAL(timeout()), this, SLOT(nomsg()));
 }
 
 void TwitchIrc::connectIrc(const QString &username, const QString &token)
@@ -103,13 +110,16 @@ void TwitchIrc::onConnecting()
 
 void TwitchIrc::onConnected()
 {
-	postMsg(QString("Connected!"));
+	postMsg("Connected to Twitch IRC!", true);
 	conn->sendCommand(IrcCommand::createJoin("#runnerguy2489"));
+
+	msgtimer->start();
 }
 
 void TwitchIrc::onDisconnected()
 {
 	postMsg("Disconnected from Twitch IRC!", true);
+	QTimer::singleShot(10000, conn, SLOT(open()));
 }
 
 void TwitchIrc::gotMsg(IrcPrivateMessage *msg)
@@ -117,7 +127,14 @@ void TwitchIrc::gotMsg(IrcPrivateMessage *msg)
 	if(msg->isPrivate())
 		return;
 
+	msgtimer->start();
+
 	QString str = QString("%1 says: %2").arg(msg->nick()).arg(msg->content());
 
 	postMsg(str);
+}
+
+void TwitchIrc::nomsg()
+{
+	postMsg("No Twitch chat message in 2 minutes!", true);
 }
