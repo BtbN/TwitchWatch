@@ -29,7 +29,6 @@ elseif(MSVC)
 endif()
 
 add_subdirectory(qtspeech)
-add_subdirectory(communi)
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network)
 
