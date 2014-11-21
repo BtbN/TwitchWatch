@@ -29,14 +29,25 @@ elseif(MSVC)
 endif()
 
 add_subdirectory(qtspeech)
+add_subdirectory(3rdparty/dist)
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network)
 
 set(TwitchWatch_SOURCES
-	main.cpp)
+	main.cpp
+	mainwin.cpp
+	mainwin.h
+	twitchirc.cpp
+	twitchirc.h
+	srlirc.cpp
+	srlirc.h
+	streamwatch.cpp
+	streamwatch.h)
 
 add_executable(TwitchWatch WIN32
 	${TwitchWatch_SOURCES})
 target_link_libraries(TwitchWatch
 	Qt5::Widgets
-	QtSpeech)
+	Qt5::Network
+	QtSpeech
+	communi)

@@ -69,7 +69,6 @@ QtSpeech::QtSpeech(VoiceName n, QObject* parent)
 
 QtSpeech::~QtSpeech()
 {
-	//if ()
 	delete d;
 }
 

@@ -1,22 +1,19 @@
 #include <QtDebug>
 
 #include <QApplication>
-#include <QtSpeech>
+#include "mainwin.h"
 
 
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
 
-	QtSpeech speech;
+	app.setOrganizationName("btbn.de");
+	app.setOrganizationDomain("btbn.de");
+	app.setApplicationName("TwitchWatcher");
 
-	for(QtSpeech::VoiceName name: speech.voices())
-	{
-		qDebug() << name.name;
-	}
-
-	speech.tell("TESTING THE PLAYBACK SOUND SYSTEM");
-	qDebug() << speech.name().name;
+	MainWin win;
+	win.show();
 
 	return app.exec();
 }
