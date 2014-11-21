@@ -1,0 +1,1 @@
+./configure -no-uchardet -no-icu -qmake /usr/lib/qt5/bin/qmake -static -prefix "${PWD}"/../dist/linux_x64 -nomake tests -nomake examples

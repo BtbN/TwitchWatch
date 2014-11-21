@@ -1,0 +1,9 @@
+DEFINES+=IRC_STATIC
+IRC_VERSION=3.3.0
+IRC_VERSION_MAJOR=3
+IRC_VERSION_MINOR=3
+IRC_VERSION_PATCH=0
+IRC_INSTALL_LIBS=/home/timo/Projekte/TwitchWatch/3rdparty/libcommuni/../dist/linux_x64/lib
+IRC_INSTALL_BINS=/home/timo/Projekte/TwitchWatch/3rdparty/libcommuni/../dist/linux_x64/bin
+IRC_INSTALL_HEADERS=/home/timo/Projekte/TwitchWatch/3rdparty/libcommuni/../dist/linux_x64/include
+IRC_INSTALL_FEATURES=/home/timo/Projekte/TwitchWatch/3rdparty/libcommuni/../dist/linux_x64/features
