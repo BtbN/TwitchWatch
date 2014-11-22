@@ -91,6 +91,9 @@ void SrlIrc::gotMsg(IrcPrivateMessage *msg)
 
 void SrlIrc::checkConn()
 {
+	if(!conn)
+		return;
+
 	if(conn->isConnected())
 		return;
 

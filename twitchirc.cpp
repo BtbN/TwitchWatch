@@ -150,6 +150,9 @@ void TwitchIrc::nomsg()
 
 void TwitchIrc::checkConn()
 {
+	if(!conn)
+		return;
+
 	if(conn->isConnected())
 		return;
 
