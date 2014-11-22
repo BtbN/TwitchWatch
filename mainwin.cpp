@@ -1,4 +1,8 @@
+#include <QActionGroup>
 #include <QTabWidget>
+#include <QMenuBar>
+#include <QAction>
+#include <QMenu>
 
 #include "mainwin.h"
 #include "srlirc.h"
@@ -10,9 +14,11 @@ MainWin::MainWin(QWidget *parent)
 {
 	resize(800, 600);
 
-	srlirc = new SrlIrc(this);
-	twitchirc = new TwitchIrc(this);
-	streamwatch = new StreamWatch(this);
+	speech = new QtSpeech(this);
+
+	srlirc = new SrlIrc(speech, this);
+	twitchirc = new TwitchIrc(speech, this);
+	streamwatch = new StreamWatch(speech, this);
 
 	QTabWidget *tabber = new QTabWidget(this);
 
@@ -21,6 +27,36 @@ MainWin::MainWin(QWidget *parent)
 	tabber->addTab(streamwatch, "Stream Watch");
 
 	setCentralWidget(tabber);
+
+	QMenuBar *mbar = menuBar();
+
+	QMenu *filemenu = mbar->addMenu("File");
+
+	filemenu->addAction("Exit", this, SLOT(close()));
+
+	QMenu *voicemenu = mbar->addMenu("Voices");
+
+	QActionGroup *ag = new QActionGroup(voicemenu);
+	ag->setExclusive(true);
+
+	for(const QtSpeech::VoiceName &vname: speech->voices())
+	{
+		QAction *vaction = ag->addAction(vname.name);
+		voicemenu->addAction(vaction);
+
+		vaction->setCheckable(true);
+
+		if(speech->name().id == vname.id)
+			vaction->setChecked(true);
+
+		connect(vaction, &QAction::triggered, this, [this, vname, vaction]()
+		{
+			speech->deleteLater();
+			speech = new QtSpeech(vname, this);
+
+			vaction->setChecked(true);
+		});
+	}
 }
 
 

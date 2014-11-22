@@ -19,15 +19,20 @@
 #include <QtCore>
 #include <QtSpeech>
 
-#undef UNICODE
-#include <sapi.h>
-#include <sphelper.h>
-#include <comdef.h>
-#define UNICODE
+#include <memory>
+
+#pragma warning(push)
+#pragma warning(disable: 4996) // Deprecated functions used in sapi headers
 
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+
+#include <sapi.h>
+#include <sphelper.h>
+#include <comdef.h>
+
+#pragma warning(pop)
 
 namespace QtSpeech_v1   // API v1.0
 {
@@ -138,7 +143,7 @@ namespace QtSpeech_v1   // API v1.0
 			SysCall( SpEnumTokens(SPCAT_VOICES, NULL, NULL, &voices), InitError);
 			SysCall( voices->GetCount(&count), InitError);
 
-			for (int i = 0; i < count; i++)
+			for (unsigned int i = 0; i < count; i++)
 			{
 				WCHAR* w_id = 0L;
 				CComPtr<ISpObjectToken> voice;
@@ -185,14 +190,14 @@ namespace QtSpeech_v1   // API v1.0
 		SysCall( SpEnumTokens(SPCAT_VOICES, NULL, NULL, &voices), LogicError);
 		SysCall( voices->GetCount(&count), LogicError);
 
-		for(int i = 0; i < count; i++)
+		for(unsigned int i = 0; i < count; i++)
 		{
 			WCHAR* w_id = 0L;
 			WCHAR* w_name = 0L;
 			CComPtr<ISpObjectToken> voice;
-			SysCall( voices->Next( 1, &voice, NULL ), LogicError);
-			SysCall( SpGetDescription(voice, &w_name), LogicError);
-			SysCall( voice->GetId(&w_id), LogicError);
+			SysCall(voices->Next(1, &voice, NULL), LogicError);
+			SysCall(SpGetDescription(voice, &w_name), LogicError);
+			SysCall(voice->GetId(&w_id), LogicError);
 
 			QString id = QString::fromWCharArray(w_id);
 			QString name = QString::fromWCharArray(w_name);
@@ -205,16 +210,24 @@ namespace QtSpeech_v1   // API v1.0
 		return vs;
 	}
 
-	void QtSpeech::tell(QString text) const
+	void QtSpeech::tell(const QString &text)
 	{
-		tell(text, 0L, 0L);
+		tell(text, nullptr, nullptr);
 	}
 
-	void QtSpeech::tell(QString text, QObject* obj, const char* slot) const
+	void QtSpeech::tell(const QString &text, QObject* obj, const char* slot)
 	{
-		if (d->waitingFinish)
+		if(d->waitingFinish)
 		{
-			throw LogicError(Where + "Already waiting to finish speech");
+			auto conn = std::make_shared<QMetaObject::Connection>();
+
+			*conn = connect(this, &QtSpeech::finished, this, [this, conn, text, obj, slot]()
+			{
+				disconnect(*conn);
+				tell(text, obj, slot);
+			});
+
+			return;
 		}
 
 		d->onFinishObj = obj;
@@ -222,17 +235,17 @@ namespace QtSpeech_v1   // API v1.0
 
 		if (obj && slot)
 		{
-			connect(const_cast<QtSpeech*>(this), SIGNAL(finished()), obj, slot);
+			connect(this, SIGNAL(finished()), obj, slot);
 		}
 
 		d->waitingFinish = true;
-		const_cast<QtSpeech*>(this)->startTimer(100);
+		startTimer(100);
 
 		Private::WCHAR_Holder w_text(text);
-		SysCall( d->voice->Speak( w_text.w, SPF_ASYNC | SPF_IS_NOT_XML, 0), LogicError);
+		SysCall(d->voice->Speak( w_text.w, SPF_ASYNC | SPF_IS_NOT_XML, 0), LogicError);
 	}
 
-	void QtSpeech::say(QString text) const
+	void QtSpeech::say(const QString &text)
 	{
 		Private::WCHAR_Holder w_text(text);
 		SysCall( d->voice->Speak( w_text.w, SPF_IS_NOT_XML, 0), LogicError);
@@ -251,7 +264,7 @@ namespace QtSpeech_v1   // API v1.0
 			{
 				d->waitingFinish = false;
 				killTimer(te->timerId());
-				finished();
+				emit finished();
 			}
 		}
 	}

@@ -1,6 +1,9 @@
 #include <QtDebug>
-#include <QTime>
+
 #include <QApplication>
+#include <QMessageBox>
+#include <QTime>
+
 #include "mainwin.h"
 
 
@@ -14,8 +17,17 @@ int main(int argc, char *argv[])
 
 	qsrand((uint)QTime::currentTime().msec());
 
-	MainWin win;
-	win.show();
+	try
+	{
+		MainWin win;
+		win.show();
 
-	return app.exec();
+		return app.exec();
+	}
+	catch(const std::exception &e)
+	{
+		QMessageBox::critical(nullptr, "Exception occured!", e.what());
+	}
+
+	return -1;
 }

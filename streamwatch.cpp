@@ -1,6 +1,7 @@
 #include <QJsonParseError>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QCheckBox>
 
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
@@ -15,11 +16,16 @@
 #include "streamwatch.h"
 
 
-StreamWatch::StreamWatch(QWidget *parent)
-    :QWidget(parent)
+StreamWatch::StreamWatch(QtSpeech*& speech, QWidget *parent)
+	:QWidget(parent)
+	,speech(speech)
 {
 	streamLine = new QLineEdit(this);
 	textEdit = new QTextEdit(this);
+	shutUpBox = new QCheckBox(this);
+
+	textEdit->setReadOnly(true);
+	shutUpBox->setText("Shut up");
 
 	streamLine->setText("runnerguy2489");
 
@@ -27,6 +33,7 @@ StreamWatch::StreamWatch(QWidget *parent)
 
 	lay->addWidget(streamLine);
 	lay->addWidget(textEdit);
+	lay->addWidget(shutUpBox);
 
 	nam = new QNetworkAccessManager(this);
 
@@ -36,16 +43,21 @@ StreamWatch::StreamWatch(QWidget *parent)
 	reauthTimer->start();
 
 	retryTimer = new QTimer(this);
-	retryTimer->setInterval(10000);
+	retryTimer->setInterval(30000);
 	retryTimer->setSingleShot(true);
-
-	speech = new QtSpeech(this);
 
 	connect(reauthTimer, SIGNAL(timeout()), this, SLOT(reauth()));
 	connect(retryTimer, SIGNAL(timeout()), this, SLOT(reauth()));
 
 	haveToken = false;
 	wasDown = false;
+
+	connect(streamLine, SIGNAL(returnPressed()), this, SLOT(reauth()));
+
+	connect(nam, &QNetworkAccessManager::finished, [](QNetworkReply *repl)
+	{
+		repl->deleteLater();
+	});
 
 	reauth();
 }
@@ -71,6 +83,7 @@ void StreamWatch::tokenReply(QNetworkReply *reply)
 	if(reply->error() != QNetworkReply::NoError)
 	{
 		textEdit->setText("token get error!");
+		randomError();
 		retryTimer->start();
 		return;
 	}
@@ -94,6 +107,7 @@ void StreamWatch::tokenReply(QNetworkReply *reply)
 	{
 		qDebug() << "Get token failed: Error" << code;
 		retryTimer->start();
+		randomError();
 		return;
 	}
 
@@ -106,6 +120,7 @@ void StreamWatch::tokenReply(QNetworkReply *reply)
 	{
 		qDebug() << "Json parsing failed:" << err.errorString();
 		retryTimer->start();
+		randomError();
 		return;
 	}
 
@@ -120,7 +135,8 @@ void StreamWatch::tokenReply(QNetworkReply *reply)
 	}
 	else
 	{
-		qDebug() << "New info is empty!";
+		textEdit->setText("New info is empty!");
+		randomError();
 		return;
 	}
 
@@ -151,6 +167,7 @@ void StreamWatch::usherReply(QNetworkReply *reply)
 	{
 		textEdit->setText("usher get error!");
 		retryTimer->start();
+		randomError();
 		return;
 	}
 
@@ -173,6 +190,7 @@ void StreamWatch::usherReply(QNetworkReply *reply)
 	{
 		textEdit->setText("Get usher failed: Error" + code);
 		retryTimer->start();
+		randomError();
 		return;
 	}
 
@@ -180,10 +198,9 @@ void StreamWatch::usherReply(QNetworkReply *reply)
 
 	if(m3u8.trimmed() == "[]")
 	{
-		textEdit->setText("m3u8 is empty, channel likely not live, retrying in 10 seconds");
-		speech->tell("Twitch channel appears to be down!");
+		textEdit->setText("m3u8 is empty, channel likely not live, retrying in 30 seconds");
+		isOff();
 		retryTimer->start();
-		wasDown = true;
 		return;
 	}
 
@@ -197,16 +214,43 @@ void StreamWatch::usherReply(QNetworkReply *reply)
 		{
 			textEdit->setText(m3u8);
 
-			if(wasDown)
-			{
-				wasDown = false;
-				speech->tell("Twitch channel is online");
-			}
+			isOn();
 
 			return;
 		}
 	}
 
-	textEdit->setText("no channel found in m3u8, retrying in 10 seconds");
+	textEdit->setText("no channel found in m3u8, retrying in 30 seconds");
 	retryTimer->start();
+	randomError();
+}
+
+void StreamWatch::randomError()
+{
+	if(shutUpBox->isChecked())
+		return;
+
+	speech->tell("Error checking twitch stream status");
+	wasDown = true;
+}
+
+void StreamWatch::isOn()
+{
+	if(shutUpBox->isChecked())
+		return;
+
+	if(wasDown)
+	{
+		wasDown = false;
+		speech->tell("Twitch channel is online");
+	}
+}
+
+void StreamWatch::isOff()
+{
+	if(shutUpBox->isChecked())
+		return;
+
+	speech->tell("Twitch channel appears to be offline!");
+	wasDown = true;
 }

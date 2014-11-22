@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QLineEdit>
 #include <QSettings>
+#include <QCheckBox>
 #include <QTimer>
 
 #include <Irc>
@@ -12,14 +13,15 @@
 #include "twitchirc.h"
 
 
-TwitchIrc::TwitchIrc(QWidget *parent)
+TwitchIrc::TwitchIrc(QtSpeech*& speech, QWidget *parent)
 	:QWidget(parent)
+	,speech(speech)
+	,conn(nullptr)
 {
-	speech = new QtSpeech(this);
-
-	conn = nullptr;
-
 	lw = new QListWidget(this);
+	shutUpBox = new QCheckBox(this);
+
+	shutUpBox->setText("Shut up");
 
 	QLineEdit *ue = new QLineEdit(this);
 	QLineEdit *le = new QLineEdit(this);
@@ -61,10 +63,18 @@ TwitchIrc::TwitchIrc(QWidget *parent)
 	lay->addWidget(ue);
 	lay->addWidget(le);
 	lay->addWidget(lw);
+	lay->addWidget(shutUpBox);
 
 	msgtimer = new QTimer(this);
 	msgtimer->setSingleShot(true);
 	msgtimer->setInterval(120000);
+
+	QTimer *checkTimer = new QTimer(this);
+	checkTimer->setSingleShot(false);
+	checkTimer->setInterval(10000);
+	checkTimer->start();
+
+	connect(checkTimer, SIGNAL(timeout()), this, SLOT(checkConn()));
 
 	connect(msgtimer, SIGNAL(timeout()), this, SLOT(nomsg()));
 }
@@ -97,7 +107,7 @@ void TwitchIrc::postMsg(const QString &msg, bool read)
 	while(lw->count() > 20)
 		delete lw->takeItem(0);
 
-	if(read)
+	if(read && !shutUpBox->isChecked())
 	{
 		speech->tell(msg);
 	}
@@ -119,7 +129,6 @@ void TwitchIrc::onConnected()
 void TwitchIrc::onDisconnected()
 {
 	postMsg("Disconnected from Twitch IRC!", true);
-	QTimer::singleShot(10000, conn, SLOT(open()));
 }
 
 void TwitchIrc::gotMsg(IrcPrivateMessage *msg)
@@ -137,4 +146,12 @@ void TwitchIrc::gotMsg(IrcPrivateMessage *msg)
 void TwitchIrc::nomsg()
 {
 	postMsg("No Twitch chat message in 2 minutes!", true);
+}
+
+void TwitchIrc::checkConn()
+{
+	if(conn->isConnected())
+		return;
+
+	conn->open();
 }

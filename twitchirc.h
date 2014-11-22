@@ -1,9 +1,9 @@
 #pragma once
 
-
 #include <QWidget>
 #include <QtSpeech>
 
+class QCheckBox;
 class IrcConnection;
 class QListWidget;
 class IrcPrivateMessage;
@@ -14,7 +14,7 @@ class TwitchIrc : public QWidget
 	Q_OBJECT
 
 	public:
-	TwitchIrc(QWidget *parent = 0);
+	TwitchIrc(QtSpeech*& speech, QWidget *parent = 0);
 
 	private slots:
 	void connectIrc(const QString &username, const QString &token);
@@ -24,10 +24,12 @@ class TwitchIrc : public QWidget
 	void onDisconnected();
 	void gotMsg(IrcPrivateMessage *msg);
 	void nomsg();
+	void checkConn();
 
 	private:
 	IrcConnection *conn;
 	QListWidget *lw;
-	QtSpeech *speech;
+	QtSpeech*& speech;
 	QTimer *msgtimer;
+	QCheckBox *shutUpBox;
 };

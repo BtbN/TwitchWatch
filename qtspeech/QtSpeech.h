@@ -20,6 +20,7 @@
 #define QtSpeech_H
 
 #include <QObject>
+#include <exception>
 
 #if defined(QTSPEECH_STATIC)
 # define QTSPEECH_API
@@ -38,21 +39,29 @@ class QTSPEECH_API QtSpeech : public QObject
 
 	public:
 	// exceptions
-	struct Error
+	class Error : public std::exception
 	{
+		public:
 		QString msg;
 		Error(QString s): msg(s) {}
+		virtual const char *what() const
+		{
+			return msg.toUtf8().constData();
+		}
 	};
-	struct InitError : Error
+	class InitError : public Error
 	{
+		public:
 		InitError(QString s): Error(s) {}
 	};
-	struct LogicError : Error
+	class LogicError : public Error
 	{
+		public:
 		LogicError(QString s): Error(s) {}
 	};
-	struct CloseError : Error
+	class CloseError : public Error
 	{
+		public:
 		CloseError(QString s): Error(s) {}
 	};
 

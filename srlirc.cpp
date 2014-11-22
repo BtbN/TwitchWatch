@@ -11,10 +11,30 @@
 
 
 
-SrlIrc::SrlIrc(QWidget *parent)
+SrlIrc::SrlIrc(QtSpeech*& speech, QWidget *parent)
 	:QWidget(parent)
+	,speech(speech)
+	,conn(nullptr)
 {
-	speech = new QtSpeech(this);
+	lw = new QListWidget(this);
+
+	QVBoxLayout *lay = new QVBoxLayout(this);
+	lay->addWidget(lw);
+
+	QTimer *checkTimer = new QTimer(this);
+	checkTimer->setSingleShot(false);
+	checkTimer->setInterval(10000);
+	checkTimer->start();
+
+	connect(checkTimer, SIGNAL(timeout()), this, SLOT(checkConn()));
+
+	newConn();
+}
+
+void SrlIrc::newConn()
+{
+	if(conn)
+		delete conn;
 
 	conn = new IrcConnection("irc.speedrunslive.com", this);
 	conn->setUserName("watcher");
@@ -28,11 +48,6 @@ SrlIrc::SrlIrc(QWidget *parent)
 	connect(conn, SIGNAL(privateMessageReceived(IrcPrivateMessage*)), this, SLOT(gotMsg(IrcPrivateMessage*)));
 
 	conn->open();
-
-	lw = new QListWidget(this);
-
-	QVBoxLayout *lay = new QVBoxLayout(this);
-	lay->addWidget(lw);
 }
 
 void SrlIrc::postMsg(const QString &msg, bool read)
@@ -62,7 +77,6 @@ void SrlIrc::onConnected()
 void SrlIrc::onDisconnected()
 {
 	postMsg("Disconnected from SRL IRC!", true);
-	QTimer::singleShot(10000, conn, SLOT(open()));
 }
 
 void SrlIrc::gotMsg(IrcPrivateMessage *msg)
@@ -73,4 +87,12 @@ void SrlIrc::gotMsg(IrcPrivateMessage *msg)
 	QString str = QString("%1 says: %2").arg(msg->nick()).arg(msg->content());
 
 	postMsg(str, true);
+}
+
+void SrlIrc::checkConn()
+{
+	if(conn->isConnected())
+		return;
+
+	newConn();
 }

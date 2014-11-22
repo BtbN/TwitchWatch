@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QtSpeech>
 
 class SrlIrc;
 class TwitchIrc;
@@ -16,6 +17,8 @@ class MainWin : public QMainWindow
 	~MainWin();
 
 	private:
+	QtSpeech *speech;
+
 	SrlIrc *srlirc;
 	TwitchIrc *twitchirc;
 	StreamWatch *streamwatch;
