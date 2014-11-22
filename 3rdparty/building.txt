@@ -1,1 +1,10 @@
 ./configure -no-uchardet -no-icu -qmake /usr/lib/qt5/bin/qmake -static -prefix "${PWD}"/../dist/linux_x64 -nomake tests -nomake examples
+
+INSTALL_PREFIX="$PWD/../dist/win_x64"
+INSTALL_LIBS="$INSTALL_PREFIX/lib"
+INSTALL_BINS="$INSTALL_PREFIX/bin"
+INSTALL_HEADERS="$INSTALL_PREFIX/include"
+INSTALL_FEATURES="$INSTALL_PREFIX/features"
+INSTALL_IMPORTS="$INSTALL_PREFIX/imports"
+INSTALL_QML="$INSTALL_PREFIX/qml"
+qmake -config static -config no_icu -config no_tests -config no_examples -config release IRC_INSTALL_LIBS="$INSTALL_LIBS"
