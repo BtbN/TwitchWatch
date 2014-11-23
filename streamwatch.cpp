@@ -64,6 +64,8 @@ StreamWatch::StreamWatch(QtSpeech*& speech, QWidget *parent)
 
 void StreamWatch::reauth()
 {
+	streamLine->setText(streamLine->text().toLower());
+
 	QNetworkRequest req;
 
 	QString url = QString("http://api.twitch.tv/api/channels/%1/access_token").arg(streamLine->text());

@@ -32,4 +32,5 @@ class TwitchIrc : public QWidget
 	QtSpeech*& speech;
 	QTimer *msgtimer;
 	QCheckBox *shutUpBox;
+	bool haveGotMsg;
 };

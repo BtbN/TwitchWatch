@@ -17,6 +17,7 @@ TwitchIrc::TwitchIrc(QtSpeech*& speech, QWidget *parent)
 	:QWidget(parent)
 	,speech(speech)
 	,conn(nullptr)
+	,haveGotMsg(true)
 {
 	lw = new QListWidget(this);
 	shutUpBox = new QCheckBox(this);
@@ -138,6 +139,12 @@ void TwitchIrc::gotMsg(IrcPrivateMessage *msg)
 
 	msgtimer->start();
 
+	if(!haveGotMsg)
+	{
+		haveGotMsg = true;
+		postMsg("Got a Twitch chat message again!", true);
+	}
+
 	QString str = QString("%1 says: %2").arg(msg->nick()).arg(msg->content());
 
 	postMsg(str);
@@ -146,6 +153,7 @@ void TwitchIrc::gotMsg(IrcPrivateMessage *msg)
 void TwitchIrc::nomsg()
 {
 	postMsg("No Twitch chat message in 2 minutes!", true);
+	haveGotMsg = false;
 }
 
 void TwitchIrc::checkConn()
